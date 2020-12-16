@@ -405,9 +405,9 @@ def release(release_type, remote="origin"):
     subprocess.run(["git", "add", pathlib.Path("docs").resolve()])
     subprocess.run(["git", "commit", "-m", '"docs: Update documentation"'])
 
-    # PUSH MASTER
+    # PUSH MAIN
 
-    subprocess.run(["git", "push", remote, "master"])
+    subprocess.run(["git", "push", remote, "main"])
 
     # CREATE AND PUSH TAG
 
