@@ -254,7 +254,7 @@ def doc():
 
     _remove_paths(pathlib.Path("sphinx-templates"))
 
-    for p in pathlib.Path("docs","build","html").glob("*"):
+    for p in pathlib.Path("docs", "build", "html").glob("*"):
         p.rename(pathlib.Path("docs").joinpath(p.name))
 
 
@@ -340,7 +340,7 @@ def build_conda(*build_channels):
 
     # RUN CONDA BUILD
     subprocess.run(
-        ["conda", "build", "debug", str(pathlib.Path(".").resolve())]
+        ["conda", "build", str(pathlib.Path(".").resolve())]
         + _interleave("-c", build_channels)
     )
 
@@ -419,10 +419,10 @@ def clean(env_name=None):
     _remove_paths(
         pathlib.Path("build"),
         pathlib.Path("conda-build"),
-        pathlib.Path("docs","build"),
-        pathlib.Path("docs","source"),
-        pathlib.Path("docs","make.bat"),
-        pathlib.Path("docs","Makefile"),
+        pathlib.Path("docs", "build"),
+        pathlib.Path("docs", "source"),
+        pathlib.Path("docs", "make.bat"),
+        pathlib.Path("docs", "Makefile"),
         pathlib.Path("conda"),
         pathlib.Path("sphinx-templates"),
         pathlib.Path(".pytest_cache"),
