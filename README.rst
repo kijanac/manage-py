@@ -11,9 +11,9 @@ Usage Guide
 #. Run “conda activate ENV_NAME” to activate your development environment
 #. If starting from scratch:
     #. Create a new directory for your project and enter that directory on the command line
-    #. Run “python manage.py init REPO HOMEPAGE README CONDA_SUB” to create a pyproject.toml file, where:
+    #. Run “python manage.py init <REPO> <HOMEPAGE> <README> <CONDA_SUB>” to create a pyproject.toml file, where:
         * REPO is a link to the repository for this project (e.g. https://github.com/<username>/<project_name>)
-        * HOMEPAGE is a link to the homepage for this project [default: REPO]
+        * HOMEPAGE is a link to the homepage for this project [default: <REPO>]
         * README is the name of the readme file to be used by this project [default: README.rst]
         * CONDA_SUB is a dictionary of substitutions for poetry2conda to translate pip dependencies into conda dependencies. For example, if your project has PyTorch as a dependency (named as “torch” on PyPI and “pytorch” on the conda channel “pytorch”) you should use ‘{“torch”: {“name”: “pytorch”, “channel”: “pytorch”}}’ for CONDA_SUB.  [default: {}]
 #. git pull
