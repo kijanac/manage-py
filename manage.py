@@ -11,7 +11,7 @@ dev_packages_conda = [
     "conda-build",
     "conda-verify",
     "git",
-    "latexmk",
+    # "latexmk",
     "make",
     "poetry",
     "sphinx",
@@ -108,9 +108,9 @@ def _changelog_helper(tag, repo, previous_tag=None):
 # COMMAND LINE FUNCTIONS
 
 
-def setup(env_name):
+def setup(env_name, python_version="3"):
     subprocess.run(
-        ["conda", "create", "-n", env_name, "python=3"]
+        ["conda", "create", "-n", env_name, "python=" + python_version]
         + dev_packages_conda
         + _interleave("-c", channels)
         + ["-y"]
@@ -246,12 +246,22 @@ def doc():
         ]
     )
 
-    subprocess.run(["make", "-C", "docs", "clean", "html", "latexpdf"])
+    subprocess.run(["make", "-C", "docs", "clean", "html"])  # , "latexpdf"])
 
-    _remove_paths(pathlib.Path("sphinx-templates"))
+    build_dir = pathlib.Path("docs", "build")
+
+    paths_to_remove = (p for p in pathlib.Path("docs").glob("*") if p != build_dir)
+
+    _remove_paths(*paths_to_remove)
 
     for p in pathlib.Path("docs", "build", "html").glob("*"):
         p.rename(pathlib.Path("docs").joinpath(p.name))
+
+    paths_to_remove = [
+        pathlib.Path("sphinx-templates"),
+        *(p for p in pathlib.Path("docs").rglob("*") if p.is_dir()),
+    ]
+    _remove_paths(*paths_to_remove)
 
 
 def lint():
