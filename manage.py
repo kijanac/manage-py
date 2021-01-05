@@ -263,6 +263,7 @@ def doc():
         build_dir.joinpath("_sources"),
     ]
     _remove_paths(*paths_to_remove)
+    pathlib.Path("docs", ".nojekyll").touch()
 
 
 def lint():
