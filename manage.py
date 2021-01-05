@@ -17,7 +17,7 @@ dev_packages_conda = [
     "sphinx",
     "sphinx-autodoc-typehints",
 ]
-dev_packages_py = ["black", "flake8", "poetry2conda", "ruamel.yaml", "toml"]
+dev_packages_py = ["black", "flake8", "poetry2conda", "ruamel.yaml", "sphinx-rtd-theme", "toml"]
 test_packages_py = ["pytest", "pytest-cov"]
 
 # HELPER FUNCTIONS
@@ -189,7 +189,7 @@ def init_doc():
         version=d["tool"]["poetry"]["version"],
         release=d["tool"]["poetry"]["version"],
         add_module_names=False,
-        html_theme="nature",
+        html_theme="sphinx_rtd_theme",
         use_napoleon_params=True,
     )
 
@@ -202,6 +202,7 @@ def init_doc():
         "sphinx.ext.napoleon",
         "sphinx.ext.autodoc",
         "sphinx_autodoc_typehints",
+        "sphinx_rtd_theme",
     ]
 
     subprocess.run(
