@@ -9,9 +9,9 @@ Usage Guide
 #. Download manage.py
 #. Run “python manage.py setup ENV_NAME” to create a new conda development environment with name ENV_NAME
 #. Run “conda activate ENV_NAME” to activate your development environment
-#. If starting from scratch:
+#. If starting from scratch\:
     #. Create a new directory for your project and enter that directory on the command line
-    #. Run “python manage.py init <REPO> <HOMEPAGE> <README> <CONDA_SUB>” to create a pyproject.toml file, where:
+    #. Run “python manage.py init <REPO> <HOMEPAGE> <README> <CONDA_SUB>” to create a pyproject.toml file, where\:
         * REPO is a link to the repository for this project (e.g. https://github.com/<username>/<project_name>)
         * HOMEPAGE is a link to the homepage for this project [default: <REPO>]
         * README is the name of the readme file to be used by this project [default: README.rst]
