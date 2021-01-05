@@ -259,7 +259,8 @@ def doc():
 
     paths_to_remove = [
         pathlib.Path("sphinx-templates"),
-        *(p for p in pathlib.Path("docs").rglob("*") if p.is_dir()),
+        build_dir,
+        build_dir.joinpath("_sources"),
     ]
     _remove_paths(*paths_to_remove)
 
