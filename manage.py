@@ -17,7 +17,14 @@ dev_packages_conda = [
     "sphinx",
     "sphinx-autodoc-typehints",
 ]
-dev_packages_py = ["black", "flake8", "poetry2conda", "ruamel.yaml", "sphinx-rtd-theme", "toml"]
+dev_packages_py = [
+    "black",
+    "flake8",
+    "poetry2conda",
+    "ruamel.yaml",
+    "sphinx-rtd-theme",
+    "toml",
+]
 test_packages_py = ["pytest", "pytest-cov"]
 
 # HELPER FUNCTIONS
@@ -191,6 +198,7 @@ def init_doc():
         add_module_names=False,
         html_theme="sphinx_rtd_theme",
         use_napoleon_params=True,
+        autoclass_content="both",
     )
 
     template_params = []
@@ -598,11 +606,18 @@ intersphinx_mapping = {'https://docs.python.org/3/': None}
 todo_include_todos = True
 {%- endif %}
 
+{%- if 'sphinx.ext.autodoc' in extensions %}
+
+# -- Options for autodoc extension -------------------------------------------
+
+autoclass_content = {{ autoclass_content | repr }}
+{%- endif %}
+
 {%- if 'sphinx.ext.napoleon' in extensions %}
 
 # -- Options for napoleon extension ------------------------------------------
 
-use_napoleon_params = True
+use_napoleon_params = {{ use_napoleon_params }}
 {%- endif %}
 """
 
