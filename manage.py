@@ -3,10 +3,12 @@ import datetime
 import pathlib
 import re
 import subprocess
+import tempfile
 
 channels = ["conda-forge"]
 dev_packages_conda = [
     "anaconda-client",
+    "cmake",
     "codecov",
     "conda-build",
     "conda-verify",
@@ -37,10 +39,10 @@ def _parse_pyproject():
         return toml.load(f)
 
 
-def _write_pyproject(d):
+def _write_pyproject(d, name="pyproject.toml"):
     import toml
 
-    with open(pathlib.Path("pyproject.toml"), "w") as f:
+    with open(pathlib.Path(name), "w") as f:
         toml.dump(d, f)
 
 
@@ -112,12 +114,19 @@ def _changelog_helper(tag, repo, previous_tag=None):
     return lines
 
 
+def _conda_dependencies(toml_file):
+    import ruamel.yaml
+
+    s = subprocess.check_output(["poetry2conda", toml_file, "-"])
+    return ruamel.yaml.YAML(typ="safe").load(s)["dependencies"]
+
+
 # COMMAND LINE FUNCTIONS
 
 
-def setup(env_name, python_version="3"):
+def setup(name, version):
     subprocess.run(
-        ["conda", "create", "-n", env_name, "python=" + python_version]
+        ["conda", "create", "-n", name, "python=" + version]
         + dev_packages_conda
         + _interleave("-c", channels)
         + ["-y"]
@@ -276,7 +285,7 @@ def doc():
 
 
 def lint():
-    paths_to_lint = ["src", "tests"]  # , "examples"]
+    paths_to_lint = ["src", "tests", "examples"]
     subprocess.run(["black", *paths_to_lint])
     subprocess.check_call(
         [
@@ -293,21 +302,44 @@ def lint():
 
 
 def install():
+    # INSTALL NON-CONDA DEPENDENCIES
+
     subprocess.run(["poetry", "install"])
 
+    # INSTALL CONDA DEPENDENCIES
 
-def test(codecov_token=None):
+    d = _parse_pyproject()
+
+    if "manage" in d["tool"]:
+        import toml
+
+        with tempfile.NamedTemporaryFile(mode="w+", suffix=".toml") as conda_toml:
+            # temporarily replace deps with conda deps
+
+            d["tool"]["poetry"]["dependencies"] = d["tool"]["manage"][
+                "conda-dependencies"
+            ]
+            d["tool"]["poetry2conda"]["name"] = ""
+            toml.dump(d, conda_toml)
+            conda_toml.flush()
+
+            conda_deps = _conda_dependencies(conda_toml.name)
+            subprocess.run(["conda", "install", "-y", *conda_deps])
+
+
+def test(token):
     subprocess.check_call(["pytest"])
-    if codecov_token is not None:
-        subprocess.run(["codecov", "-t", codecov_token])
+    if token is not None:
+        subprocess.run(["codecov", "-t", token])
 
 
-def build():
+def build(conda, channels):
     subprocess.run(["poetry", "build"])
 
+    if not conda:
+        return
 
-def build_conda(*build_channels):
-    init_conda()
+    # init_conda()
 
     import ruamel.yaml
 
@@ -321,8 +353,7 @@ def build_conda(*build_channels):
 
     # RUNTIME DEPENDENCIES
 
-    s = subprocess.check_output(["poetry2conda", "pyproject.toml", "-"])
-    run_deps = ruamel.yaml.YAML(typ="safe").load(s)["dependencies"]
+    run_deps = _conda_dependencies("pyproject.toml")
 
     # AUTHOR INFO
 
@@ -339,7 +370,7 @@ def build_conda(*build_channels):
     x["build"] = dict(
         number=0,
         noarch="python",
-        script="{{ PYTHON }} -m pip install . --no-deps -vv",
+        script="python -m pip install . --no-deps -vv",
     )
     x["requirements"] = dict(run=run_deps)
     x["test"] = dict(requires=test_packages_py)
@@ -358,10 +389,10 @@ def build_conda(*build_channels):
     # RUN CONDA BUILD
     subprocess.run(
         ["conda", "build", str(pathlib.Path(".").resolve())]
-        + _interleave("-c", build_channels)
+        + _interleave("-c", channels)
     )
 
-    _remove_paths(pathlib.Path("conda"))
+    # _remove_paths(pathlib.Path("conda"))
 
 
 def publish(pypi_token, conda_token):
@@ -376,7 +407,7 @@ def publish(pypi_token, conda_token):
         subprocess.run(["anaconda", "--token", conda_token, "upload", d["name"]])
 
 
-def release(release_type, remote="origin"):
+def release(release_type, remote):
     subprocess.check_call(["poetry", "version", release_type])
 
     # GET VERSION NUMBER
@@ -432,7 +463,7 @@ def release(release_type, remote="origin"):
     subprocess.run(["git", "push", remote, "v" + version])
 
 
-def clean(env_name=None):
+def clean(name):
     _remove_paths(
         pathlib.Path("build"),
         pathlib.Path("conda-build"),
@@ -452,8 +483,8 @@ def clean(env_name=None):
         *pathlib.Path(".").glob(".coverage*"),
         *pathlib.Path(".").rglob("__pycache__"),
     )
-    if env_name is not None:
-        subprocess.run(["conda", "env", "remove", "-n", env_name])
+    if name is not None:
+        subprocess.run(["conda", "env", "remove", "-n", name])
 
 
 # CONDA BUILD META.YAML
@@ -650,11 +681,36 @@ if __name__ == "__main__":
     import json
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("cmd", type=str)
-    # parser.add_argument("--pypi-token",type=str)
-    # parser.add_argument("--conda-token",type=str)
-    parser.add_argument("pos_args", nargs="*")
-    parser.add_argument("--conda_sub", type=json.loads)
+    subparsers = parser.add_subparsers(dest="subparser")
+
+    setup_parser = subparsers.add_parser("setup")
+    setup_parser.add_argument("-n", "--name", type=str)
+    setup_parser.add_argument("-v", "--version", type=str, default="3")
+
+    install_parser = subparsers.add_parser("install")
+
+    lint_parser = subparsers.add_parser("lint")
+
+    test_parser = subparsers.add_parser("test")
+    test_parser.add_argument("-t", "--token", type=str)
+
+    build_parser = subparsers.add_parser("build")
+    build_parser.add_argument("-c", "--conda", action="store_true")
+    build_parser.add_argument("-l", "--channels", nargs="+", type=str)
+
+    clean_parser = subparsers.add_parser("clean")
+    clean_parser.add_argument("-n", "--name", type=str)
+
+    release_parser = subparsers.add_parser("release")
+    release_parser.add_argument("-t", "--type", type=str)
+    release_parser.add_argument("-r", "--remote", type=str, default="origin")
+
+    publish_parser = subparsers.add_parser("publish")
+    publish_parser.add_argument("-p", "--pypi-token", type=str)
+    publish_parser.add_argument("-c", "--conda-token", type=str)
+
+    # parser.add_argument("pos_args", nargs="*")
+    # parser.add_argument("--conda_sub", type=json.loads)
     args = parser.parse_args()
 
     funcs = dict(
@@ -667,13 +723,10 @@ if __name__ == "__main__":
         install=install,
         test=test,
         build=build,
-        build_conda=build_conda,
         publish=publish,
         clean=clean,
         release=release,
     )
 
-    if args.cmd == "init":
-        funcs[args.cmd](*args.pos_args, conda_sub=args.conda_sub)
-    else:
-        funcs[args.cmd](*args.pos_args)
+    kwargs = vars(parser.parse_args())
+    funcs[kwargs.pop("subparser")](**kwargs)
